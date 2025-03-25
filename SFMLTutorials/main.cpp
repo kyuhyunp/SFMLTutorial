@@ -1,5 +1,8 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
+using namespace sf::Literals;
+
+enum directions { down, right, up, left };
 
 int main() {
 	unsigned int width = 640;
@@ -7,35 +10,25 @@ int main() {
 	sf::RenderWindow* window = new sf::RenderWindow(sf::VideoMode({ width, height }), "Tutorials");
 	window->setFramerateLimit(60);
 
-	sf::CircleShape circle(64.0f); 
-	circle.setOrigin(circle.getGeometricCenter());
-	circle.setPosition({ width / 4.0f, height / 4.0f });
-	circle.setFillColor(sf::Color::Green);
-	circle.setOutlineThickness(3.0f);
-	circle.setOutlineColor(sf::Color::Magenta);
-	circle.setPointCount(3); // Makes circle a triangle
+	sf::Texture texture;
+	if (!texture.loadFromFile("Sprites/ExampleSprite.png")) {
+		std::cerr << "ERROR: COULD NOT LOAD FILE:: Sprites/ExampleSprite.png\n";
+		return -1;
+	}
 
-	sf::RectangleShape rectangle({ 50.0f, 80.0f });
-	rectangle.setOrigin(rectangle.getSize() / 2.0f); // rectangle.getSize() returns a Vector with width, height
-	rectangle.setPosition({ width / 2.0f, height / 2.0f });
-	rectangle.setFillColor(sf::Color::Yellow);
-	rectangle.setOutlineThickness(5.0f);
-	rectangle.setOutlineColor(sf::Color::Blue);
+	// Sprites/ExampleSprite.png is loaded in sprite
+	sf::Sprite sprite(texture);
+	
+	// Dividing the example sprite image into four images 32 x 32 pixels
+	sf::IntRect dir[4];
+	for (int i = 0; i < 4; ++i) {
+		dir[i] = sf::IntRect({ {32 * i, 0}, {32, 32} });
+	}
 
-	sf::ConvexShape convex; // Technically can be a concave shape
-
-	convex.setPointCount(6);
-	convex.setPoint(0, { 13.0f, 17.0f });
-	convex.setPoint(1, { 3.5f, 1.6f });
-	convex.setPoint(2, { 0.25f, -12.0f });
-	convex.setPoint(3, { -12.0f, -7.3f });
-	convex.setPoint(4, { -12.5f, -1.6f });
-	convex.setPoint(5, { -5.0f, 7.5f });
-	convex.setOrigin(convex.getGeometricCenter());
-	convex.setFillColor(sf::Color(0x3F00FFFF)); // Two bits are Red, Blue, Green, Transparency
-	convex.setOutlineThickness(2.4f);
-	convex.setOutlineColor(sf::Color(0xFF8888FF));
-	convex.setPosition({ width / 2.0f, height / 2.0f });
+	sprite.setTextureRect(dir[down]); // First image in dir
+	sprite.setOrigin({ 16, 16 });
+	sprite.setPosition({ width / 2.0f, height / 2.0f });
+	sprite.setColor(sf::Color(0x6495EDFF));
 
 	while (window->isOpen()) {
 		while (const std::optional event = window->pollEvent()) {
@@ -51,33 +44,37 @@ int main() {
 				}
 			}
 		}
-		circle.rotate(sf::degrees(1));
-		circle.move({ 1.0f, 1.0f }); // moving down right
-		circle.setFillColor(sf::Color::Green);
 
-		rectangle.rotate(sf::degrees(-1));
-		rectangle.move({ -1.0f, -1.0f });
-		rectangle.setFillColor(sf::Color::Yellow);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::R)) {
+			sprite.rotate(sf::degrees(1));
+		}
+		
 
+		sf::Angle currentRotation = sprite.getRotation();
 
-		/**
-		* This checks if the bounding box of the circle overlaps with the bounding box of the rectangle.
-		* Note that this is a coarse collision detection method, 
-		often used as a quick first step before more precise checks (e.g., circle-rectangle intersection).
-		*/
-		if (circle.getGlobalBounds().findIntersection(rectangle.getGlobalBounds())) {
-			circle.setFillColor(sf::Color::Red);
-			rectangle.setFillColor(sf::Color::Red);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S)) {
+			sprite.move({ std::cosf((currentRotation + 90_deg).asRadians()), std::sinf((currentRotation + 90_deg).asRadians()) });
+			sprite.setTextureRect(dir[down]);
+		}
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W)) {
+			sprite.move({ std::cosf((currentRotation - 90_deg).asRadians()), std::sinf((currentRotation - 90_deg).asRadians()) });
+			sprite.setTextureRect(dir[up]);
+		}
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D)) {
+			sprite.move({ std::cosf(currentRotation.asRadians()), std::sinf(currentRotation.asRadians()) });
+			sprite.setTextureRect(dir[right]);
+		}
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A)) {
+			sprite.move({ std::cosf((currentRotation + 180_deg).asRadians()), std::sinf((currentRotation + 180_deg).asRadians()) });
+			sprite.setTextureRect(dir[left]);
 		}
 
+
 		// Render
-		window->clear(sf::Color(0xFF8800FF)); // Background color to Orange
+		window->clear(); 
 
 		// Drawing
-		window->draw(circle);
-		window->draw(rectangle);
-
-		window->draw(convex);
+		window->draw(sprite);
 
 		window->display();
 	}
