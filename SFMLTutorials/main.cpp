@@ -1,34 +1,9 @@
 #include <iostream>
+#include <random>
+#include <chrono>
+
 #include <SFML/Graphics.hpp>
 
-sf::Color HSVToRGB(float h, float s, float v) {
-	float hPrime = h / 60.0f;
-	unsigned int hIndex = unsigned int(hPrime) % 6;
-
-	float chroma = s * v;
-	float min = (v - chroma);
-	float x = chroma * (1.0f - abs(fmod(hPrime, 2.0f) - 1.0f));
-
-	float outRGB[6][3] = {
-		{chroma, x, 0.0f},
-		{x, chroma, 0.0f},
-		{0.0f, chroma, x},
-		{0.0f, x, chroma},
-		{x, 0.0f, chroma},
-		{chroma, 0.0f, x}
-	};
-	float rF = (outRGB[hIndex][0] + min);
-	float gF = (outRGB[hIndex][1] + min);
-	float bF = (outRGB[hIndex][2] + min);
-	rF *= 255.0f;
-	gF *= 255.0f;
-	bF *= 255.0f;
-	
-	std::uint8_t rI = std::uint8_t(rF);
-	std::uint8_t gI = std::uint8_t(gF);
-	std::uint8_t bI = std::uint8_t(bF);
-	return sf::Color(rI, gI, bI);
-}
 
 
 int main() {
@@ -37,49 +12,29 @@ int main() {
 	sf::RenderWindow* window = new sf::RenderWindow(sf::VideoMode({ width, height }), "Tutorials");
 	window->setFramerateLimit(60);
 
-	int n = 24;
+	sf::Image image;
+	image.resize({ width, height });
 
-	sf::VertexArray lines;
-	lines.setPrimitiveType(sf::PrimitiveType::Lines);
-	lines.resize(n);
+	sf::Texture texture(image.getSize());
 
-	sf::VertexArray lineStrip;
-	lineStrip.setPrimitiveType(sf::PrimitiveType::LineStrip);
-	lineStrip.resize(n);
+	sf::Sprite sprite(texture);
 
-	sf::VertexArray triangles;
-	triangles.setPrimitiveType(sf::PrimitiveType::Triangles);
-	triangles.resize(6);
+	unsigned int size = width * height;
+	
+	unsigned int* board = new unsigned int[size];
+	unsigned int* neighbors = new unsigned int[size];
 
-	float size = 48.0;
-	sf::Vector2f v0 = { 0.0f, 0.0f };
-	sf::Vector2f v1 = { size, 0.0f };
-	sf::Vector2f v2 = { 0.0f, size };
-	sf::Vector2f v3 = { size, size };
+	int dir[8] = { 1, int(width) + 1, int(width), int(width) - 1,
+		-1, -int(width) - 1, -int(width), -int(width) + 1 };
 
-	triangles[0].position = v0;
-	triangles[1].position = v1;
-	triangles[2].position = v2;
-	triangles[3].position = v3;
-	triangles[4].position = v2;
-	triangles[5].position = v1;
+	std::default_random_engine randEng;
+	int seed = std::chrono::steady_clock::now().time_since_epoch().count();
+	randEng.seed(seed);
 
-	for (int i = 0; i < 6; ++i) {
-		triangles[i].position += {width / 1.5f, height / 1.5f};
-		triangles[i].color = HSVToRGB(60.0f * i, 1.0f, 1.0f);
-	}
-
-	for (int i = 0; i < n; ++i) {
-		sf::Vector2f pos = { float(i * cos(i)), float(i * sin(i)) };
-		float hue = i * (360.0f / n);
-
-		lines[i].position = pos;
-		lines[i].position += {width / 4.0f, height / 4.0f};
-		lines[i].color = HSVToRGB(hue, 1.0f, 1.0f);
-
-		lineStrip[i].position = pos;
-		lineStrip[i].position += {width / 2.0f, height / 2.0f};
-		lineStrip[i].color = HSVToRGB(hue, 1.0f, 1.0f);
+	for (unsigned int i = 0; i < size; ++i) {
+		std::uniform_int_distribution onOff(0, 1);
+		board[i] = onOff(randEng);
+		neighbors[i] = 0;
 	}
 
 	while (window->isOpen()) {
@@ -97,18 +52,55 @@ int main() {
 			}
 		}
 
-	
+		for (unsigned int i = 0; i < size; ++i) {
+			if (board[i] == 0) {
+				continue;
+			}
+			for (int j = 0; j < 8; ++j) {
+				int index = i + dir[j];
+				if (index < 0) {
+					index += size;
+				}
+				else if (index > size - 1) {
+					index -= size;
+				}
+				++neighbors[index];
+			}
+		}
+
+		for (unsigned int i = 0; i < size; ++i) {
+			if (board[i] == 0 && neighbors[i] == 3) {
+				board[i] = 1;
+			}
+			else if (board[i] == 1 && (neighbors[i] < 2 || neighbors[i] > 3)) {
+				board[i] = 0;
+			}
+
+			sf::Color color = board[i] == 1 ? sf::Color::White : sf::Color::Black;
+
+			unsigned int x = i % width;
+			unsigned int y = floor(i / width);
+
+			sf::Vector2u pos = sf::Vector2u(x, y);
+
+			image.setPixel(pos, color);
+
+			neighbors[i] = 0;
+		}
+
+		texture.update(image);
+
 		// Render
 		window->clear(); 
 
 		// Drawing
-		window->draw(lines);
-		window->draw(lineStrip);
-		window->draw(triangles);
+		window->draw(sprite);
 
 		window->display();
 	}
 
+	delete[] board;
+	delete[] neighbors;
 	delete window;
 	return 0;
 }
