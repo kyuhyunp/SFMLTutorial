@@ -1,13 +1,14 @@
 #include <iostream>
+#include <memory>
 #include <SFML/Graphics.hpp>
 
 
 void PollEvents(sf::RenderWindow& window) {
-	while (const std::optional event = window.pollEvent()) {
+	while (const auto event = window.pollEvent()) {
 		if (event->is<sf::Event::Closed>()) {
 			window.close();
 		}
-		else if (const auto* keyPressed = event->getIf < sf::Event::KeyPressed>()) {
+		else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
 			if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) {
 				window.close();
 			}
@@ -18,64 +19,51 @@ void PollEvents(sf::RenderWindow& window) {
 int main() {
 	unsigned int width = 640;
 	unsigned int height = 360;
-	sf::RenderWindow* window = new sf::RenderWindow(sf::VideoMode({ width, height }), "Tutorials");
+	auto window = std::make_unique<sf::RenderWindow>(sf::VideoMode({ width, height }), "Tutorials");
 	window->setFramerateLimit(60);
 
-	sf::RenderWindow* window2 = new sf::RenderWindow(sf::VideoMode({ width, height }), "Tutorials2");
-	window2->setFramerateLimit(60);
-
-	sf::CircleShape circle(64.0f);
-	circle.setOrigin(circle.getGeometricCenter());
-	circle.setPosition({ width / 2.0f, height / 2.0f });
-	circle.setFillColor(sf::Color(0x6495EDFF));
-
-	sf::CircleShape circle2(32.0f);
-	circle2.setOrigin(circle2.getGeometricCenter());
-	circle2.setPosition({ width / 2.0f, height / 2.0f });
-	circle2.setFillColor(sf::Color(0x6495EDFF));
-
-	while (window->isOpen() || window2->isOpen()) {
-		
-		PollEvents(*window);
-		PollEvents(*window2);
-
-		if (window->hasFocus()) {
-			if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-				sf::Vector2i pos = sf::Mouse::getPosition(*window);
-				circle.setPosition(sf::Vector2f(pos));
-			}
-		}
-		if (window2->hasFocus()) {
-			if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
-				sf::Vector2i pos = sf::Mouse::getPosition(*window2);
-				circle2.setPosition(sf::Vector2f(pos));
-			}
-		}
-
-		if (window->isOpen() == false) {
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Num1)) {
-				window = new sf::RenderWindow(sf::VideoMode({ width, height }), "Tutorials");
-			}
-		}
-		if (window2->isOpen() == false) {
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Num2)) {
-				window2 = new sf::RenderWindow(sf::VideoMode({ width, height }), "Tutorials2");
-			}
-		}
-		
-		// Render
-		window->clear(); 
-		window2->clear();
-
-		// Drawing
-		window->draw(circle);
-		window2->draw(circle2);
-
-		window->display();
-		window2->display();
+	sf::Texture texture;
+	if (!texture.loadFromFile("Sprites/AnimationExample.png")) {
+		std::cerr << "ERROR COULD NOT LOAD FILE: Sprites/AnimationExample.png!!!\n";
+		return -1;
 	}
 
-	delete window;
-	delete window2;
+	sf::Sprite sprite(texture);
+	int texWidth = 0;
+
+	sprite.setTextureRect({ { 0, 0 }, { 32, 32 } });
+	sprite.setOrigin({ sprite.getTextureRect().size.x / 2.0f, sprite.getTextureRect().size.y / 2.0f });
+	sprite.setPosition({ width / 2.0f, height / 2.0f });
+	sprite.setScale({ 4.0f, 4.0f });
+
+	float timerMax = 0.25f;
+	float timer = 0.0f;
+
+	float waitTimerMax = 2.25f;
+	float waitTimer = waitTimerMax;
+
+	while (window->isOpen()) {
+		PollEvents(*window);
+		
+		timer += 0.1f;
+		if (timer >= timerMax) {
+			sprite.setTextureRect({ {texWidth, 0}, {32, 32} });
+
+			texWidth += 32;
+			if (texture.getSize().x <= texWidth) {
+				texWidth = 0;
+			} 
+
+			timer = 0.0f;
+		}
+		// Render
+		window->clear(); 
+
+		// Drawing
+		window->draw(sprite);
+
+		window->display();
+	}
+
 	return 0;
 }
