@@ -1,10 +1,13 @@
 #include <iostream>
 #include <memory>
+#include <string>
+#include <sstream>
+
 #include <SFML/Graphics.hpp>
 
 
 void PollEvents(sf::RenderWindow& window) {
-	while (const auto event = window.pollEvent()) {
+	while (const std::optional event = window.pollEvent()) {
 		if (event->is<sf::Event::Closed>()) {
 			window.close();
 		}
@@ -22,45 +25,38 @@ int main() {
 	auto window = std::make_unique<sf::RenderWindow>(sf::VideoMode({ width, height }), "Tutorials");
 	window->setFramerateLimit(60);
 
-	sf::Texture texture;
-	if (!texture.loadFromFile("Sprites/AnimationExample.png")) {
-		std::cerr << "ERROR COULD NOT LOAD FILE: Sprites/AnimationExample.png!!!\n";
+	sf::Font font;
+	std::string filename = "Fonts/ARIAL.TTF";
+	if (!font.openFromFile(filename)) {
+		std::cerr << "ERROR COULD NOT LOAD FILE:: " << filename << "\n";
 		return -1;
 	}
 
-	sf::Sprite sprite(texture);
-	int texWidth = 0;
+	sf::Text text(font);
+	text.setString("Time: 0.000000");
+	text.setOrigin(text.getGlobalBounds().size / 2.0f);
+	text.setPosition({ width / 2.0f, height / 2.0f });
+	text.setFillColor(sf::Color(0x6495EDFF));
+	text.setOutlineThickness(1.0f);
+	text.setOutlineColor(sf::Color(0x9B6A12FF));
 
-	sprite.setTextureRect({ { 0, 0 }, { 32, 32 } });
-	sprite.setOrigin({ sprite.getTextureRect().size.x / 2.0f, sprite.getTextureRect().size.y / 2.0f });
-	sprite.setPosition({ width / 2.0f, height / 2.0f });
-	sprite.setScale({ 4.0f, 4.0f });
-
-	float timerMax = 0.25f;
-	float timer = 0.0f;
-
-	float waitTimerMax = 2.25f;
-	float waitTimer = waitTimerMax;
+	sf::Clock clock;
+	float dt;
 
 	while (window->isOpen()) {
 		PollEvents(*window);
 		
-		timer += 0.1f;
-		if (timer >= timerMax) {
-			sprite.setTextureRect({ {texWidth, 0}, {32, 32} });
+		dt = clock.restart().asSeconds();
 
-			texWidth += 32;
-			if (texture.getSize().x <= texWidth) {
-				texWidth = 0;
-			} 
+		std::stringstream sStream;
+		sStream << "Time: " << dt;
+		text.setString(sStream.str());
 
-			timer = 0.0f;
-		}
 		// Render
 		window->clear(); 
 
 		// Drawing
-		window->draw(sprite);
+		window->draw(text);
 
 		window->display();
 	}
