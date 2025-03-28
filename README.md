@@ -11,3 +11,4 @@ Concepts from the [official SFML documentation](https://www.sfml-dev.org/tutoria
 5. [Conway's Game of Life Video](https://github.com/kyuhyunp/SFMLTutorial/pull/5)
 6. [Moving a mouse and multiple windows](https://github.com/kyuhyunp/SFMLTutorial/pull/6)
 7. [Animation and smart pointer](https://github.com/kyuhyunp/SFMLTutorial/pull/7)
+8. [Delta time and Font](https://github.com/kyuhyunp/SFMLTutorial/pull/8)
